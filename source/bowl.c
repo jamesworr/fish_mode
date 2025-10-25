@@ -102,11 +102,11 @@ int main() {
 
 
 	// Load palette
-	memcpy16(pal_bg_mem, bowl_bgPal, bowl_bgPalLen / sizeof(u16));
+	memcpy16(pal_bg_mem, bowl_bg_pal, bowl_bg_pal_len / sizeof(u16));
 	// Load tiles into CBB 0
-	memcpy32(&tile_mem[0][0], bowl_bgTiles, bowl_bgTilesLen / sizeof(u32));
+	memcpy32(&tile_mem[0][0], bowl_bg_tiles, bowl_bg_tiles_len / sizeof(u32));
 	// Load map into SBB 30
-	memcpy32(&se_mem[30][0], bowl_bgMap, bowl_bgMapLen / sizeof(u32));
+	memcpy32(&se_mem[30][0], bowl_bg_map, bowl_bg_map_len / sizeof(u32));
 
 	// set up BG0 for a 4bpp 64x32t map, using
 	//   using charblock 0 and screenblock 31
