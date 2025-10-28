@@ -5,6 +5,7 @@
 #include <string.h>
 #include <tonc.h>
 #include "bowl_bg.h"
+#include "fish.h"
 
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
@@ -95,11 +96,17 @@ int main() {
     // Setup for tiled mode
     //   into LOW obj memory (cbb == 4)
     //  copy block
-    //memcpy32(&tile_mem[4][0], block_spriteTiles, block_spriteTilesLen / sizeof(u32));
-    //memcpy16(pal_obj_mem, block_spritePal, block_spritePalLen / sizeof(u16));
-    //oam_init(obj_buffer, 128);
-    //REG_DISPCNT= DCNT_MODE0 | DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
+    memcpy32(&tile_mem[4][0], fish_tiles, fish_tiles_len / sizeof(u32));
+    memcpy16(pal_obj_mem, fish_pal, fish_pal_len / sizeof(u16));
+    oam_init(obj_buffer, 128);
 
+    // Set fish sprite attributes
+    obj_set_attr(&obj_buffer[0],
+        ATTR0_WIDE,
+        ATTR1_SIZE_16x8,
+        ATTR2_PALBANK(0)); // | BLOCK_TILE_OFFSET);
+    obj_set_pos(&obj_buffer[0], 120, 80);
+    oam_copy(oam_mem, obj_buffer, 1);
 
 	// Load palette
 	memcpy16(pal_bg_mem, bowl_bg_pal, bowl_bg_pal_len / sizeof(u16));
@@ -108,12 +115,9 @@ int main() {
 	// Load map into SBB 30
 	memcpy32(&se_mem[30][0], bowl_bg_map, bowl_bg_map_len / sizeof(u32));
 
-	// set up BG0 for a 4bpp 64x32t map, using
-	//   using charblock 0 and screenblock 31
-	REG_BG0CNT= BG_CBB(0) | BG_SBB(30) | BG_8BPP | BG_REG_64x32;
-	REG_DISPCNT= DCNT_MODE0 | DCNT_BG0;
-
-
+    // Setup background and display registers
+    REG_BG0CNT  = BG_CBB(0) | BG_SBB(30) | BG_8BPP | BG_REG_64x32;
+    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
 
 
     //sprite_loop();
