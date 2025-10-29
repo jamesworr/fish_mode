@@ -35,6 +35,8 @@ void sprite_loop() {
     //    obj_set_pos(block_obj, (i/NUM_COLS)*BLOCK_HEIGHT, (i%NUM_ROWS)*BLOCK_WIDTH);
     //}
 
+    volatile u8 fish_x = 120;
+    volatile u8 fish_y =  80;
 
     while(1) {
         vid_vsync();
@@ -42,22 +44,23 @@ void sprite_loop() {
         if (key_hit(KEY_SELECT)) {
             break; // Break out of waiting loop and restart
         }
-        
-        // FIXME redo the bounds checking to account for different piece shapes
-        //if (key_hit(KEY_UP) && (live_piece_y > 0)) {
-        //    live_piece_y--;
-        //}
-        //if (key_hit(KEY_DOWN) && (live_piece_y < (NUM_ROWS - piece_library[live_piece_idx].y_len))) {
-        //    live_piece_y++;
-        //}
-        //if (key_hit(KEY_LEFT) && (live_piece_x > 0)) {
-        //    live_piece_x--;
-        //}
-        //if (key_hit(KEY_RIGHT) && (live_piece_x < (NUM_ROWS - piece_library[live_piece_idx].x_len))) {
-        //    live_piece_x++;
-        //}
 
-        //oam_copy(oam_mem, obj_buffer,  MAX_BLOCKS /* + other things??? TODO */);
+        // TODO add acceleration and speed
+        if (key_is_down(KEY_UP)) {
+            fish_y--;
+        }
+        if (key_is_down(KEY_DOWN)) {
+            fish_y++;
+        }
+        if (key_is_down(KEY_LEFT)) {
+            fish_x--;
+        }
+        if (key_is_down(KEY_RIGHT)) {
+            fish_x++;
+        }
+
+        obj_set_pos(&obj_buffer[0], fish_x, fish_y);
+        oam_copy(oam_mem, obj_buffer, 1);
     }
 }
 
@@ -89,7 +92,7 @@ int main() {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
 
 
-    //sprite_loop();
+    sprite_loop();
 
     // Waiting for new commands
     while(1) {
