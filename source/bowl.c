@@ -102,7 +102,7 @@ int main() {
 
     // Set fish sprite attributes
     obj_set_attr(&obj_buffer[0],
-        ATTR0_WIDE,
+        ATTR0_WIDE | ATTR0_8BPP,
         ATTR1_SIZE_16x8,
         ATTR2_PALBANK(0)); // | BLOCK_TILE_OFFSET);
     obj_set_pos(&obj_buffer[0], 120, 80);
