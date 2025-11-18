@@ -13,6 +13,26 @@ OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 #define CBB_0  0
 #define SBB_0 28
 
+// Fish object
+typedef struct {
+    u8 x; // init to 120
+    u8 y;
+
+    // 0: stationary (always init)
+    // 1: moving steady state
+    // 2: accel positive
+    // 3: accel negative
+    u8 state;
+
+    // index for v(t) function
+    // always init to 0
+    unsigned int count;
+
+    // v(t) function
+    // init to {0, 1, 2, 3, 4}
+    u8 velocity[5];
+} fish_t;
+
 void wait_any_key(void) {
     while(1) {
         vid_vsync();
@@ -23,8 +43,12 @@ void wait_any_key(void) {
     }
 }
 
+void update_fish_position(fish_t* ptr) {
+    // afadfdsf
+}
 
-void sprite_loop() {
+
+void sprite_loop(volatile fish_t* fish_ptr) {
     //OBJ_ATTR *block_obj;
     //for (int i = 0; i < MAX_BLOCKS; i++) {
     //    block_obj = &obj_buffer[i];
@@ -35,9 +59,6 @@ void sprite_loop() {
     //    obj_set_pos(block_obj, (i/NUM_COLS)*BLOCK_HEIGHT, (i%NUM_ROWS)*BLOCK_WIDTH);
     //}
 
-    volatile u8 fish_x = 120;
-    volatile u8 fish_y =  80;
-
     while(1) {
         vid_vsync();
         key_poll();
@@ -47,24 +68,32 @@ void sprite_loop() {
 
         // TODO add acceleration and speed
         if (key_is_down(KEY_UP)) {
-            fish_y--;
+            fish_ptr->y--;
         }
         if (key_is_down(KEY_DOWN)) {
-            fish_y++;
+            fish_ptr->y++;
         }
         if (key_is_down(KEY_LEFT)) {
-            fish_x--;
+            fish_ptr->x--;
         }
         if (key_is_down(KEY_RIGHT)) {
-            fish_x++;
+            fish_ptr->x++;
         }
 
-        obj_set_pos(&obj_buffer[0], fish_x, fish_y);
+        obj_set_pos(&obj_buffer[0], fish_ptr->x, fish_ptr->y);
         oam_copy(oam_mem, obj_buffer, 1);
     }
 }
 
 int main() {
+    volatile fish_t fish = {
+        // init fish values
+        .x = 120,
+        .y =  80,
+        .state = 0,
+        .count = 0,
+        .velocity = {0, 1, 2, 3, 4}
+    };
 
     // Copy Sprite Tiles
     memcpy32(&tile_mem[4][0], fish_tiles, fish_tiles_len / sizeof(u32));
@@ -76,7 +105,7 @@ int main() {
         ATTR0_WIDE | ATTR0_8BPP,
         ATTR1_SIZE_16x8,
         ATTR2_PALBANK(0)); // | BLOCK_TILE_OFFSET);
-    obj_set_pos(&obj_buffer[0], 120, 80);
+    obj_set_pos(&obj_buffer[0], fish.x, fish.y);
     oam_copy(oam_mem, obj_buffer, 1);
 
     // Copy background tiles
@@ -92,7 +121,7 @@ int main() {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_OBJ | DCNT_OBJ_1D;
 
 
-    sprite_loop();
+    sprite_loop(&fish);
 
     // Waiting for new commands
     while(1) {
