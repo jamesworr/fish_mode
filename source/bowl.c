@@ -30,8 +30,21 @@ typedef struct {
 
     // v(t) function
     // init to {0, 1, 2, 3, 4}
-    u8 velocity[5];
+    u8 velocity_map[5];
+
+    // 0: left (init)
+    // 1: right
+    u8 direction;
 } fish_t;
+
+void update_fish_position(volatile fish_t* fish_ptr) {
+    // TODO handle Y dimension
+    if (fish_ptr->direction) {
+        fish_ptr->x += fish_ptr->velocity_map[fish_ptr->count];
+    } else {
+        fish_ptr->x -= fish_ptr->velocity_map[fish_ptr->count];
+    }
+}
 
 void wait_any_key(void) {
     while(1) {
@@ -43,11 +56,6 @@ void wait_any_key(void) {
     }
 }
 
-void update_fish_position(fish_t* ptr) {
-    // afadfdsf
-}
-
-
 void sprite_loop(volatile fish_t* fish_ptr) {
     //OBJ_ATTR *block_obj;
     //for (int i = 0; i < MAX_BLOCKS; i++) {
@@ -58,6 +66,8 @@ void sprite_loop(volatile fish_t* fish_ptr) {
     //        ATTR2_PALBANK(0) | BLOCK_TILE_OFFSET);
     //    obj_set_pos(block_obj, (i/NUM_COLS)*BLOCK_HEIGHT, (i%NUM_ROWS)*BLOCK_WIDTH);
     //}
+
+    unsigned int frame_counter = 0;
 
     while(1) {
         vid_vsync();
@@ -80,8 +90,17 @@ void sprite_loop(volatile fish_t* fish_ptr) {
             fish_ptr->x++;
         }
 
+        // TODO
+        // update fish counter
+        // get new direction state from D pad
+        // handle new direction before current velocity decays fully
+
+        // update_fish_position(fish_ptr);
+
+        // copy to buffers
         obj_set_pos(&obj_buffer[0], fish_ptr->x, fish_ptr->y);
         oam_copy(oam_mem, obj_buffer, 1);
+        frame_counter++;
     }
 }
 
@@ -92,7 +111,8 @@ int main() {
         .y =  80,
         .state = 0,
         .count = 0,
-        .velocity = {0, 1, 2, 3, 4}
+        .direction = 0,
+        .velocity_map = {0, 1, 2, 3, 4}
     };
 
     // Copy Sprite Tiles
