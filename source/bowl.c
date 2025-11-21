@@ -8,11 +8,13 @@
 #include "fish.h"
 
 OBJ_ATTR obj_buffer[128];
-OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
+OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 
 #define CBB_0  0
 #define SBB_0 28
 
+#define ACCEL_TIMER_LIMIT 30
+#define COUNT_SHIFT_AMMOUNT 2
 // Fish object
 typedef struct {
     u8 x; // init to 120
@@ -36,21 +38,27 @@ typedef struct {
     // 0: left (init)
     // 1: right
     u8 direction;
+
+    // TODO switch to velocity vectors to handle wall collisions
 } fish_t;
 
 void update_fish_position(volatile fish_t* fish_ptr) {
     // TODO handle Y dimension
     // FIXME redo count and use state
     if (fish_ptr->direction) {
-        fish_ptr->x += fish_ptr->velocity_map[fish_ptr->count];
+        fish_ptr->x -= fish_ptr->velocity_map[fish_ptr->count >> COUNT_SHIFT_AMMOUNT];
     }
     else {
-        fish_ptr->x -= fish_ptr->velocity_map[fish_ptr->count];
+        fish_ptr->x += fish_ptr->velocity_map[fish_ptr->count >> COUNT_SHIFT_AMMOUNT];
     }
 }
 
 // 0: stationary
 void fish_fsm_0(volatile fish_t* fish_ptr) {
+
+    // Zero out counter
+    fish_ptr->count = 0;
+
     // TODO decide L/R priority
     if (key_hit(KEY_LEFT)) {
         fish_ptr->direction = 1;
@@ -83,13 +91,16 @@ void fish_fsm_2(volatile fish_t* fish_ptr) {
         fish_ptr->state = 3;
     }
 
+    // Increment counter
+    fish_ptr->count++;
+
     // Check timer
-    if (fish_ptr->counter) {
-        fish_ptr->state = 2;
+    if (fish_ptr->count > ACCEL_TIMER_LIMIT) {
+        // move to steady state after timer hits limit
+        fish_ptr->state = 1;
     }
     else {
-        // move to steady state after timer expire
-        fish_ptr->state = 1;
+        fish_ptr->state = 2;
     }
 }
 
@@ -100,8 +111,11 @@ void fish_fsm_3(volatile fish_t* fish_ptr) {
     //    fish_ptr->state = 2;
     //}
 
+    // Increment counter
+    fish_ptr->count--;
+
     // Check timer
-    if (fish_ptr->counter) {
+    if (fish_ptr->count) {
         fish_ptr->state = 3;
     }
     else {
@@ -114,19 +128,19 @@ void update_fish_fsm(volatile fish_t* fish_ptr) {
     // TODO handle Y dimension
     switch (fish_ptr->state) {
         case 0:
-            fish_fsm_0;
+            fish_fsm_0(fish_ptr);
             break;
         case 1:
-            fish_fsm_1;
+            fish_fsm_1(fish_ptr);
             break;
         case 2:
-            fish_fsm_2;
+            fish_fsm_2(fish_ptr);
             break;
         case 3:
-            fish_fsm_3;
+            fish_fsm_3(fish_ptr);
             break;
         default:
-            fish_fsm_0;
+            fish_fsm_0(fish_ptr);
             break;
     }
 
@@ -170,11 +184,11 @@ void sprite_loop(volatile fish_t* fish_ptr) {
             fish_ptr->y++;
         }
 
+        // Fish horizontal motion
         // TODO
-        // update fish counter
 
-        // update_fish_fsm(fish_ptr);
-        // update_fish_position(fish_ptr);
+        update_fish_fsm(fish_ptr);
+        update_fish_position(fish_ptr);
 
         // copy to buffers
         obj_set_pos(&obj_buffer[0], fish_ptr->x, fish_ptr->y);
