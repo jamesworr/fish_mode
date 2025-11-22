@@ -88,8 +88,10 @@ void fish_fsm_1(volatile fish_t* fish_ptr) {
 void fish_fsm_2(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
     //if (key_released(KEY_LEFT | KEY_RIGHT)) {
-    if (key_is_up(KEY_LEFT | KEY_RIGHT)) {
+    //if (key_is_up(KEY_LEFT | KEY_RIGHT)) {
+    if ( (fish_ptr->direction == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction == 1 && key_is_up(KEY_LEFT)))    ) {
         fish_ptr->state = 3;
+        return;
     }
 
     // Increment counter
