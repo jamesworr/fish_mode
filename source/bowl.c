@@ -48,16 +48,19 @@ typedef struct {
 
 void update_fish_position(volatile fish_t* fish_ptr) {
     // TODO derive net acceleration from sum of forces
-    unsigned int delta_t = fish_ptr->frame_counter - fish_ptr->frame_0;
-    fish_ptr->frame_0 = fish_ptr->frame_counter; // update frame_0 for the next iteration
+    //unsigned int delta_t = fish_ptr->frame_counter - fish_ptr->frame_0;
+    //fish_ptr->frame_0 = fish_ptr->frame_counter; // update frame_0 for the next iteration
 
     // FIXME 1:1 velocity to pixel mapping is too fast to see this accel
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
-    fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
+    //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
+    fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x  ) >> 5); // velocity term, delta_t always assumed 1
     if (fish_ptr->accel) { // skip multiply by 0
-        fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
-        fish_ptr->vel_x += (fish_ptr->accel * delta_t);
+        //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
+        fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel ) >> 6); // acceleration term, delta_t always assumed 1
+        //fish_ptr->vel_x += (fish_ptr->accel * delta_t);
+        fish_ptr->vel_x += fish_ptr->accel; // delta_t always assumed 1
     }
 
     // TODO Y axis
