@@ -51,15 +51,11 @@ void update_fish_position(volatile fish_t* fish_ptr) {
     //unsigned int delta_t = fish_ptr->frame_counter - fish_ptr->frame_0;
     //fish_ptr->frame_0 = fish_ptr->frame_counter; // update frame_0 for the next iteration
 
-    // FIXME 1:1 velocity to pixel mapping is too fast to see this accel
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
-    //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
     unsigned int delta_x = ( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
     if (fish_ptr->accel != 0) { // skip multiply by 0
-        //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
         delta_x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel ) >> 1); // acceleration term, delta_t always assumed 1
-        //fish_ptr->vel_x += (fish_ptr->accel * delta_t);
         fish_ptr->vel_x += fish_ptr->accel; // delta_t always assumed 1
     }
     fish_ptr->x += (delta_x >> 5);
@@ -159,7 +155,6 @@ void update_fish_fsm(volatile fish_t* fish_ptr) {
             fish_fsm_0(fish_ptr);
             break;
     }
-
 }
 
 void wait_any_key(void) {
@@ -180,7 +175,7 @@ void sprite_loop(volatile fish_t* fish_ptr) {
             break; // Break out of waiting loop and restart
         }
 
-        // TODO add acceleration and speed
+        // TODO get rid of me
         if (key_is_down(KEY_UP)) {
             fish_ptr->y--;
         }
@@ -215,7 +210,6 @@ int main() {
         .vel_x = 0,
         .vel_y = 0,
         .accel = 0
-        //.velocity_map = {0, 1, 2, 3, 4}
     };
 
     // Copy Sprite Tiles
