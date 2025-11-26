@@ -56,7 +56,7 @@ void update_fish_position(volatile fish_t* fish_ptr) {
     // dv = a*dt
     //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
     fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x  ) >> 5); // velocity term, delta_t always assumed 1
-    if (fish_ptr->accel) { // skip multiply by 0
+    if (fish_ptr->accel != 0) { // skip multiply by 0
         //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
         fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel ) >> 6); // acceleration term, delta_t always assumed 1
         //fish_ptr->vel_x += (fish_ptr->accel * delta_t);
@@ -107,6 +107,7 @@ void fish_fsm_2(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
     if ( (fish_ptr->direction == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction == 1 && key_is_up(KEY_LEFT)))    ) {
         fish_ptr->state = 3;
+        fish_ptr->accel = FISH_ACCELERATION_NEG;
         return;
     }
 
