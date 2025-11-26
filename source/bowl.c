@@ -16,8 +16,9 @@ OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 #define ACCEL_TIMER_LIMIT 30
 #define COUNT_SHIFT_AMMOUNT 3
 
-#define FISH_ACCELERATION 2
-#define FISH_VELOCITY_LIMIT 4
+#define FISH_ACCELERATION_POS  3
+#define FISH_ACCELERATION_NEG -1
+#define FISH_VELOCITY_LIMIT 180
 
 // Fish object
 typedef struct {
@@ -53,9 +54,9 @@ void update_fish_position(volatile fish_t* fish_ptr) {
     // FIXME 1:1 velocity to pixel mapping is too fast to see this accel
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
-    fish_ptr->x += ( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ); // velocity term
+    fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
     if (fish_ptr->accel) { // skip multiply by 0
-        fish_ptr->x += ( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 1; // acceleration term
+        fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
         fish_ptr->vel_x += (fish_ptr->accel * delta_t);
     }
 
@@ -72,12 +73,12 @@ void fish_fsm_0(volatile fish_t* fish_ptr) {
     if (key_hit(KEY_LEFT)) {
         fish_ptr->direction = 1;
         fish_ptr->state = 2;
-        fish_ptr->accel = 2;
+        fish_ptr->accel = FISH_ACCELERATION_POS;
     }
     else if (key_hit(KEY_RIGHT)) {
         fish_ptr->direction = 0;
         fish_ptr->state = 2;
-        fish_ptr->accel = 2;
+        fish_ptr->accel = FISH_ACCELERATION_POS;
     }
     else {
         fish_ptr->state = 0;
@@ -90,7 +91,7 @@ void fish_fsm_1(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
     if ( (fish_ptr->direction == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction == 1 && key_is_up(KEY_LEFT)))    ) {
         fish_ptr->state = 3;
-        fish_ptr->accel = -2;
+        fish_ptr->accel = FISH_ACCELERATION_NEG;
     }
     else {
         fish_ptr->state = 1;
@@ -113,7 +114,7 @@ void fish_fsm_2(volatile fish_t* fish_ptr) {
     }
     else {
         fish_ptr->state = 2;
-        fish_ptr->accel = 2;
+        fish_ptr->accel = FISH_ACCELERATION_POS;
     }
 }
 
@@ -126,7 +127,7 @@ void fish_fsm_3(volatile fish_t* fish_ptr) {
 
     if (fish_ptr->vel_x != 0) {
         fish_ptr->state =  3;
-        fish_ptr->accel = -2;
+        fish_ptr->accel = FISH_ACCELERATION_NEG;
     }
     else {
         // move to stationary after timer expire
