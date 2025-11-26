@@ -55,14 +55,14 @@ void update_fish_position(volatile fish_t* fish_ptr) {
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
     //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x * delta_t ) >> 5); // velocity term
-    fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x  ) >> 5); // velocity term, delta_t always assumed 1
+    unsigned int delta_x = ( ((fish_ptr->direction)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
     if (fish_ptr->accel != 0) { // skip multiply by 0
         //fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel * delta_t * delta_t ) >> 6); // acceleration term
-        fish_ptr->x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel ) >> 6); // acceleration term, delta_t always assumed 1
+        delta_x += (( ((fish_ptr->direction)?-1:1) * fish_ptr->accel ) >> 1); // acceleration term, delta_t always assumed 1
         //fish_ptr->vel_x += (fish_ptr->accel * delta_t);
         fish_ptr->vel_x += fish_ptr->accel; // delta_t always assumed 1
     }
-
+    fish_ptr->x += (delta_x >> 5);
     // TODO Y axis
 }
 
