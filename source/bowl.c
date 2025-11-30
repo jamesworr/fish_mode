@@ -20,6 +20,10 @@ OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 #define FISH_ACCELERATION_NEG -2
 #define FISH_VELOCITY_LIMIT 180
 
+// Collision values
+#define LEFT_LIMIT   10
+#define RIGHT_LIMIT 220
+
 // Fish object
 typedef struct {
     u8 x; // init to 120
@@ -46,8 +50,21 @@ typedef struct {
 
 } fish_t;
 
+void check_bowl_collision(volatile fish_t* fish_ptr) {
+    // TODO handle curved bowl
+    if ((fish_ptr->x < LEFT_LIMIT) && (fish_ptr->x_direction == 1)) {
+        fish_ptr->x_direction = fish_ptr->x_direction ^ 1; // flip direction
+        fish_ptr->state = 3;
+    }
+    if ((fish_ptr->x > RIGHT_LIMIT) && (fish_ptr->x_direction == 0)) {
+        fish_ptr->x_direction = fish_ptr->x_direction ^ 1;
+        fish_ptr->state = 3;
+    }
+    // TODO Y axis
+}
+
 void update_fish_position(volatile fish_t* fish_ptr) {
-    // TODO derive net acceleration from sum of forces
+    // TODO derive net acceleration from sum of forces to handle collisions properly
     //unsigned int delta_t = fish_ptr->frame_counter - fish_ptr->frame_0;
     //fish_ptr->frame_0 = fish_ptr->frame_counter; // update frame_0 for the next iteration
 
@@ -189,6 +206,7 @@ void sprite_loop(volatile fish_t* fish_ptr) {
         //if (fish_ptr->frame_counter % 2 == 0) {
         //    update_fish_position(fish_ptr);
         //}
+        check_bowl_collision(fish_ptr);
         update_fish_position(fish_ptr);
 
         // copy to buffers
