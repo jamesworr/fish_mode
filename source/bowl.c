@@ -26,6 +26,7 @@ OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 
 // Fish object
 typedef struct {
+    // fish position
     u8 x; // init to 120
     u8 y;
 
@@ -33,11 +34,13 @@ typedef struct {
     // 1: moving steady state
     // 2: accel positive
     // 3: accel negative
-    u8 state;
+    u8 state_x;
+    u8 state_y;
 
     // 0: left (init)
     // 1: right
-    u8 x_direction;
+    u8 direction_x;
+    u8 direction_y;
 
     // always init to 0
     unsigned int frame_counter; // free-running live counter
@@ -46,19 +49,20 @@ typedef struct {
     int vel_x;
     int vel_y;
 
-    int x_accel;
+    int accel_x;
+    int accel_y;
 
 } fish_t;
 
 void check_bowl_collision(volatile fish_t* fish_ptr) {
     // TODO handle curved bowl
-    if ((fish_ptr->x < LEFT_LIMIT) && (fish_ptr->x_direction == 1)) {
-        fish_ptr->x_direction = fish_ptr->x_direction ^ 1; // flip direction
-        fish_ptr->state = 3;
+    if ((fish_ptr->x < LEFT_LIMIT) && (fish_ptr->direction_x == 1)) {
+        fish_ptr->direction_x = fish_ptr->direction_x ^ 1; // flip direction
+        fish_ptr->state_x = 3;
     }
-    if ((fish_ptr->x > RIGHT_LIMIT) && (fish_ptr->x_direction == 0)) {
-        fish_ptr->x_direction = fish_ptr->x_direction ^ 1;
-        fish_ptr->state = 3;
+    if ((fish_ptr->x > RIGHT_LIMIT) && (fish_ptr->direction_x == 0)) {
+        fish_ptr->direction_x = fish_ptr->direction_x ^ 1;
+        fish_ptr->state_x = 3;
     }
     // TODO Y axis
 }
@@ -70,10 +74,10 @@ void update_fish_position(volatile fish_t* fish_ptr) {
 
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
-    int delta_x = ( ((fish_ptr->x_direction)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
-    if (fish_ptr->x_accel != 0) { // skip multiply by 0
-        delta_x += (( ((fish_ptr->x_direction)?-1:1) * fish_ptr->x_accel ) >> 1); // acceleration term, delta_t always assumed 1
-        fish_ptr->vel_x += fish_ptr->x_accel; // delta_t always assumed 1
+    int delta_x = ( ((fish_ptr->direction_x)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
+    if (fish_ptr->accel_x != 0) { // skip multiply by 0
+        delta_x += (( ((fish_ptr->direction_x)?-1:1) * fish_ptr->accel_x ) >> 1); // acceleration term, delta_t always assumed 1
+        fish_ptr->vel_x += fish_ptr->accel_x; // delta_t always assumed 1
     }
     fish_ptr->x += (delta_x >> 5);
     // TODO Y axis
@@ -87,51 +91,51 @@ void fish_fsm_0(volatile fish_t* fish_ptr) {
 
     // TODO decide L/R priority
     if (key_hit(KEY_LEFT)) {
-        fish_ptr->x_direction = 1;
-        fish_ptr->state = 2;
-        fish_ptr->x_accel = FISH_ACCELERATION_POS;
+        fish_ptr->direction_x = 1;
+        fish_ptr->state_x = 2;
+        fish_ptr->accel_x = FISH_ACCELERATION_POS;
     }
     else if (key_hit(KEY_RIGHT)) {
-        fish_ptr->x_direction = 0;
-        fish_ptr->state = 2;
-        fish_ptr->x_accel = FISH_ACCELERATION_POS;
+        fish_ptr->direction_x = 0;
+        fish_ptr->state_x = 2;
+        fish_ptr->accel_x = FISH_ACCELERATION_POS;
     }
     else {
-        fish_ptr->state = 0;
-        fish_ptr->x_accel = 0;
+        fish_ptr->state_x = 0;
+        fish_ptr->accel_x = 0;
     }
 }
 
 // 1: moving steady state
 void fish_fsm_1(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
-    if ( (fish_ptr->x_direction == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->x_direction == 1 && key_is_up(KEY_LEFT)))    ) {
-        fish_ptr->state = 3;
-        fish_ptr->x_accel = FISH_ACCELERATION_NEG;
+    if ( (fish_ptr->direction_x == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction_x == 1 && key_is_up(KEY_LEFT)))    ) {
+        fish_ptr->state_x = 3;
+        fish_ptr->accel_x = FISH_ACCELERATION_NEG;
     }
     else {
-        fish_ptr->state = 1;
-        fish_ptr->x_accel = 0;
+        fish_ptr->state_x = 1;
+        fish_ptr->accel_x = 0;
     }
 }
 
 // 2: accel positive
 void fish_fsm_2(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
-    if ( (fish_ptr->x_direction == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->x_direction == 1 && key_is_up(KEY_LEFT)))    ) {
-        fish_ptr->state = 3;
-        fish_ptr->x_accel = FISH_ACCELERATION_NEG;
+    if ( (fish_ptr->direction_x == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction_x == 1 && key_is_up(KEY_LEFT)))    ) {
+        fish_ptr->state_x = 3;
+        fish_ptr->accel_x = FISH_ACCELERATION_NEG;
         return;
     }
 
     if (fish_ptr->vel_x > FISH_VELOCITY_LIMIT) {
         // move to steady state after timer hits limit
-        fish_ptr->state = 1;
-        fish_ptr->x_accel = 0;
+        fish_ptr->state_x = 1;
+        fish_ptr->accel_x = 0;
     }
     else {
-        fish_ptr->state = 2;
-        fish_ptr->x_accel = FISH_ACCELERATION_POS;
+        fish_ptr->state_x = 2;
+        fish_ptr->accel_x = FISH_ACCELERATION_POS;
     }
 }
 
@@ -139,23 +143,23 @@ void fish_fsm_2(volatile fish_t* fish_ptr) {
 void fish_fsm_3(volatile fish_t* fish_ptr) {
     // TODO button re-pressed
     //if (key_pressed(KEY_LEFT | KEY_RIGHT)) {
-    //    fish_ptr->state = 2;
+    //    fish_ptr->state_x = 2;
     //}
 
     if (fish_ptr->vel_x != 0) {
-        fish_ptr->state =  3;
-        fish_ptr->x_accel = FISH_ACCELERATION_NEG;
+        fish_ptr->state_x =  3;
+        fish_ptr->accel_x = FISH_ACCELERATION_NEG;
     }
     else {
         // move to stationary after timer expire
-        fish_ptr->state = 0;
-        fish_ptr->x_accel = 0;
+        fish_ptr->state_x = 0;
+        fish_ptr->accel_x = 0;
     }
 }
 
 void update_fish_fsm(volatile fish_t* fish_ptr) {
     // TODO handle Y dimension
-    switch (fish_ptr->state) {
+    switch (fish_ptr->state_x) {
         case 0:
             fish_fsm_0(fish_ptr);
             break;
@@ -221,13 +225,16 @@ int main() {
         // init fish values
         .x = 120,
         .y =  80,
-        .state = 0,
-        .x_direction = 0,
+        .state_x = 0,
+        .state_y = 0,
+        .direction_x = 0,
+        .direction_y = 0,
         .frame_counter = 0,
         .frame_0 = 0,
         .vel_x = 0,
         .vel_y = 0,
-        .x_accel = 0
+        .accel_x = 0,
+        .accel_y = 0
     };
 
     // Copy Sprite Tiles
