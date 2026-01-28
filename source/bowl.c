@@ -19,7 +19,6 @@ OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 #define FISH_ACCELERATION_POS  4
 #define FISH_ACCELERATION_NEG -2
 #define FISH_VELOCITY_LIMIT 180
-#define FISH_SWIM_FORCE 2
 
 // Collision values
 #define LEFT_LIMIT   10
@@ -71,49 +70,13 @@ void update_fish_position(volatile fish_t* fish_ptr) {
 
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
-    //int delta_x = ( ((fish_ptr->x_direction)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
-    //if (fish_ptr->x_accel != 0) { // skip multiply by 0
-    //    delta_x += (( ((fish_ptr->x_direction)?-1:1) * fish_ptr->x_accel ) >> 1); // acceleration term, delta_t always assumed 1
-    //    fish_ptr->vel_x += fish_ptr->x_accel; // delta_t always assumed 1
-    //}
-    //fish_ptr->x += (delta_x >> 5);
+    int delta_x = ( ((fish_ptr->x_direction)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
+    if (fish_ptr->x_accel != 0) { // skip multiply by 0
+        delta_x += (( ((fish_ptr->x_direction)?-1:1) * fish_ptr->x_accel ) >> 1); // acceleration term, delta_t always assumed 1
+        fish_ptr->vel_x += fish_ptr->x_accel; // delta_t always assumed 1
+    }
+    fish_ptr->x += (delta_x >> 5);
     // TODO Y axis
-
-    // Sum up forces on the fish
-    volatile int net_force = 0;
-    if (key_is_down(KEY_LEFT)) {
-        net_force -= FISH_SWIM_FORCE;
-    }
-    if (key_is_down(KEY_RIGHT)) {
-        net_force += FISH_SWIM_FORCE;
-    }
-
-    // Fluid drag
-    // F = .5*Cd*A*p*v^2
-    // Cd: Drag Coefficient = 0.04 for streamlined body (goldfish are aerodynamic)
-    // A: frontal area = 1 in^2 (who knows) = 0.00064516 m^2
-    // p: Fluid density (rho) = 1000 kg/m^3 for water
-    // F = 0.0129032 * v^2 = v^2/77 ~ v^2/64 = (v*v) >> 6
-
-    if (fish_ptr->vel_x > 0) {
-        //net_force -= ( ((fish_ptr->vel_x * fish_ptr->vel_x) >> 6) + 1 );
-        net_force -= ( fish_ptr->vel_x * fish_ptr->vel_x );
-    }
-    else if (fish_ptr->vel_x < 0) {
-        //net_force += ( ((fish_ptr->vel_x * fish_ptr->vel_x) >> 6) + 1 );
-        net_force += ( fish_ptr->vel_x * fish_ptr->vel_x );
-    }
-    // Assume mass = 1, so F=1*a
-    // so net_force = net acceleration
-
-    volatile int delta_x = (  fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
-    if (net_force != 0) { // skip multiply by 0
-        delta_x += ( net_force  >> 1); // acceleration term, delta_t always assumed 1
-        fish_ptr->vel_x += net_force; // delta_t always assumed 1
-    }
-    //fish_ptr->x += (delta_x >> 1);
-    fish_ptr->x += (delta_x );
-
 }
 
 // TODO merge states 0 and 1???
@@ -239,11 +202,11 @@ void sprite_loop(volatile fish_t* fish_ptr) {
 
         // Fish horizontal motion
         // TODO try every x frames
-        //update_fish_fsm(fish_ptr);
+        update_fish_fsm(fish_ptr);
         //if (fish_ptr->frame_counter % 2 == 0) {
         //    update_fish_position(fish_ptr);
         //}
-        //check_bowl_collision(fish_ptr);
+        check_bowl_collision(fish_ptr);
         update_fish_position(fish_ptr);
 
         // copy to buffers
