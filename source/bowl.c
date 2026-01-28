@@ -74,20 +74,27 @@ void update_fish_position(volatile fish_t* fish_ptr) {
 
     // dx = 0.5*a*(dt)^2 + v*dt
     // dv = a*dt
+    // X axis
     int delta_x = ( ((fish_ptr->direction_x)?-1:1) * fish_ptr->vel_x  ); // velocity term, delta_t always assumed 1
     if (fish_ptr->accel_x != 0) { // skip multiply by 0
         delta_x += (( ((fish_ptr->direction_x)?-1:1) * fish_ptr->accel_x ) >> 1); // acceleration term, delta_t always assumed 1
         fish_ptr->vel_x += fish_ptr->accel_x; // delta_t always assumed 1
     }
     fish_ptr->x += (delta_x >> 5);
-    // TODO Y axis
+    // Y axis
+    int delta_y = ( ((fish_ptr->direction_y)?-1:1) * fish_ptr->vel_y  ); // velocity term, delta_t always assumed 1
+    if (fish_ptr->accel_y != 0) { // skip multiply by 0
+        delta_y += (( ((fish_ptr->direction_y)?-1:1) * fish_ptr->accel_y ) >> 1); // acceleration term, delta_t always assumed 1
+        fish_ptr->vel_y += fish_ptr->accel_y; // delta_t always assumed 1
+    }
+    fish_ptr->y += (delta_y >> 5);
 }
 
 // TODO merge states 0 and 1???
 // TODO get rid of states altogether??
 
 // 0: stationary
-void fish_fsm_0(volatile fish_t* fish_ptr) {
+void fish_fsm_0_x(volatile fish_t* fish_ptr) {
 
     // TODO decide L/R priority
     if (key_hit(KEY_LEFT)) {
@@ -106,8 +113,26 @@ void fish_fsm_0(volatile fish_t* fish_ptr) {
     }
 }
 
+// FIXME this is dumb but only a stepping stone
+void fish_fsm_0_y(volatile fish_t* fish_ptr) {
+    if (key_hit(KEY_UP)) {
+        fish_ptr->direction_y = 1;
+        fish_ptr->state_y = 2;
+        fish_ptr->accel_y = FISH_ACCELERATION_POS;
+    }
+    else if (key_hit(KEY_DOWN)) {
+        fish_ptr->direction_y = 0;
+        fish_ptr->state_y = 2;
+        fish_ptr->accel_y = FISH_ACCELERATION_POS;
+    }
+    else {
+        fish_ptr->state_y = 0;
+        fish_ptr->accel_y = 0;
+    }
+}
+
 // 1: moving steady state
-void fish_fsm_1(volatile fish_t* fish_ptr) {
+void fish_fsm_1_x(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
     if ( (fish_ptr->direction_x == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction_x == 1 && key_is_up(KEY_LEFT)))    ) {
         fish_ptr->state_x = 3;
@@ -119,8 +144,21 @@ void fish_fsm_1(volatile fish_t* fish_ptr) {
     }
 }
 
+void fish_fsm_1_y(volatile fish_t* fish_ptr) {
+    // skip to slow down when button released
+    //if ( (fish_ptr->direction_y == 0 && key_is_up(KEY_UP)) || ((fish_ptr->direction_y == 1 && key_is_up(KEY_DOWN)))    ) {
+    if ( (fish_ptr->direction_y == 0 && key_is_up(KEY_DOWN)) || ((fish_ptr->direction_y == 1 && key_is_up(KEY_UP)))    ) {
+        fish_ptr->state_y = 3;
+        fish_ptr->accel_y = FISH_ACCELERATION_NEG;
+    }
+    else {
+        fish_ptr->state_y = 1;
+        fish_ptr->accel_y = 0;
+    }
+}
+
 // 2: accel positive
-void fish_fsm_2(volatile fish_t* fish_ptr) {
+void fish_fsm_2_x(volatile fish_t* fish_ptr) {
     // skip to slow down when button released
     if ( (fish_ptr->direction_x == 0 && key_is_up(KEY_RIGHT)) || ((fish_ptr->direction_x == 1 && key_is_up(KEY_LEFT)))    ) {
         fish_ptr->state_x = 3;
@@ -139,8 +177,28 @@ void fish_fsm_2(volatile fish_t* fish_ptr) {
     }
 }
 
+void fish_fsm_2_y(volatile fish_t* fish_ptr) {
+    // skip to slow down when button released
+    //if ( (fish_ptr->direction_y == 0 && key_is_up(KEY_UP)) || ((fish_ptr->direction_y == 1 && key_is_up(KEY_DOWN)))    ) {
+    if ( (fish_ptr->direction_y == 0 && key_is_up(KEY_DOWN)) || ((fish_ptr->direction_y == 1 && key_is_up(KEY_UP)))    ) {
+        fish_ptr->state_y = 3;
+        fish_ptr->accel_y = FISH_ACCELERATION_NEG;
+        return;
+    }
+
+    if (fish_ptr->vel_y > FISH_VELOCITY_LIMIT) {
+        // move to steady state after timer hits limit
+        fish_ptr->state_y = 1;
+        fish_ptr->accel_y = 0;
+    }
+    else {
+        fish_ptr->state_y = 2;
+        fish_ptr->accel_y = FISH_ACCELERATION_POS;
+    }
+}
+
 // 3: accel negative
-void fish_fsm_3(volatile fish_t* fish_ptr) {
+void fish_fsm_3_x(volatile fish_t* fish_ptr) {
     // TODO button re-pressed
     //if (key_pressed(KEY_LEFT | KEY_RIGHT)) {
     //    fish_ptr->state_x = 2;
@@ -157,23 +215,57 @@ void fish_fsm_3(volatile fish_t* fish_ptr) {
     }
 }
 
+void fish_fsm_3_y(volatile fish_t* fish_ptr) {
+    // TODO button re-pressed
+    //if (key_pressed(KEY_LEFT | KEY_RIGHT)) {
+    //    fish_ptr->state_y = 2;
+    //}
+
+    if (fish_ptr->vel_y != 0) {
+        fish_ptr->state_y =  3;
+        fish_ptr->accel_y = FISH_ACCELERATION_NEG;
+    }
+    else {
+        // move to stationary after timer eypire
+        fish_ptr->state_y = 0;
+        fish_ptr->accel_y = 0;
+    }
+}
+
 void update_fish_fsm(volatile fish_t* fish_ptr) {
-    // TODO handle Y dimension
     switch (fish_ptr->state_x) {
         case 0:
-            fish_fsm_0(fish_ptr);
+            fish_fsm_0_x(fish_ptr);
             break;
         case 1:
-            fish_fsm_1(fish_ptr);
+            fish_fsm_1_x(fish_ptr);
             break;
         case 2:
-            fish_fsm_2(fish_ptr);
+            fish_fsm_2_x(fish_ptr);
             break;
         case 3:
-            fish_fsm_3(fish_ptr);
+            fish_fsm_3_x(fish_ptr);
             break;
         default:
-            fish_fsm_0(fish_ptr);
+            fish_fsm_0_x(fish_ptr);
+            break;
+    }
+    // FIXME this is dumb but only a stepping stone
+    switch (fish_ptr->state_y) {
+        case 0:
+            fish_fsm_0_y(fish_ptr);
+            break;
+        case 1:
+            fish_fsm_1_y(fish_ptr);
+            break;
+        case 2:
+            fish_fsm_2_y(fish_ptr);
+            break;
+        case 3:
+            fish_fsm_3_y(fish_ptr);
+            break;
+        default:
+            fish_fsm_0_y(fish_ptr);
             break;
     }
 }
@@ -197,12 +289,12 @@ void sprite_loop(volatile fish_t* fish_ptr) {
         }
 
         // TODO get rid of me
-        if (key_is_down(KEY_UP)) {
-            fish_ptr->y--;
-        }
-        if (key_is_down(KEY_DOWN)) {
-            fish_ptr->y++;
-        }
+        //if (key_is_down(KEY_UP)) {
+        //    fish_ptr->y--;
+        //}
+        //if (key_is_down(KEY_DOWN)) {
+        //    fish_ptr->y++;
+        //}
 
         // Fish horizontal motion
         // TODO try every x frames
