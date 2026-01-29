@@ -52,6 +52,8 @@ typedef struct {
     int accel_x;
     int accel_y;
 
+    u8 tid;
+
 } fish_t;
 
 void check_bowl_collision(volatile fish_t* fish_ptr) {
@@ -288,13 +290,13 @@ void sprite_loop(volatile fish_t* fish_ptr) {
             break; // Break out of waiting loop and restart
         }
 
-        // TODO get rid of me
-        //if (key_is_down(KEY_UP)) {
-        //    fish_ptr->y--;
-        //}
-        //if (key_is_down(KEY_DOWN)) {
-        //    fish_ptr->y++;
-        //}
+        // TODO get rid of me, just for animation testing
+        if (key_hit(KEY_A)) {
+            fish_ptr->tid--;
+        }
+        if (key_hit(KEY_B)) {
+            fish_ptr->tid++;
+        }
 
         // Fish horizontal motion
         // TODO try every x frames
@@ -306,6 +308,11 @@ void sprite_loop(volatile fish_t* fish_ptr) {
         update_fish_position(fish_ptr);
 
         // copy to buffers
+        // Set fish sprite attributes
+        obj_set_attr(&obj_buffer[0],
+            ATTR0_WIDE | ATTR0_8BPP,
+            ATTR1_SIZE_16x8,
+            ATTR2_PALBANK(0) | fish_ptr->tid);
         obj_set_pos(&obj_buffer[0], fish_ptr->x, fish_ptr->y);
         oam_copy(oam_mem, obj_buffer, 1);
         fish_ptr->frame_counter++;
@@ -326,7 +333,8 @@ int main() {
         .vel_x = 0,
         .vel_y = 0,
         .accel_x = 0,
-        .accel_y = 0
+        .accel_y = 0,
+        .tid = 0
     };
 
     // Copy Sprite Tiles
@@ -338,7 +346,7 @@ int main() {
     obj_set_attr(&obj_buffer[0],
         ATTR0_WIDE | ATTR0_8BPP,
         ATTR1_SIZE_16x8,
-        ATTR2_PALBANK(0)); // | BLOCK_TILE_OFFSET);
+        ATTR2_PALBANK(0) | fish.tid);
     obj_set_pos(&obj_buffer[0], fish.x, fish.y);
     oam_copy(oam_mem, obj_buffer, 1);
 
